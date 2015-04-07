@@ -1,0 +1,21 @@
+{
+  "name": "angular file upload",
+  "version": "3.2.4",
+  "homepage": "https://github.com/itonics/ng-file-upload",
+  "authors": [
+    "Anil Maharjan <anil.maharjan@itonics.de>"
+  ],
+  "description": "file upload module",
+  "main": "dist/angular-file-upload.js",
+  "moduleType": [
+    "globals"
+  ],
+  "license": "MIT",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ]
+}
