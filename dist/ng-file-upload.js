@@ -1,7 +1,7 @@
 /**!
  * AngularJS file upload/drop directive and service with progress and abort
  * @author  Danial  <danial.farid@gmail.com>
- * @version <%= pkg.version %>
+ * @version 4.0.2
  */
 (function () {
 
@@ -26,10 +26,10 @@ if (window.XMLHttpRequest && !window.XMLHttpRequest.__isFileAPIShim) {
     });
 }
 
-var angularFileUpload = angular.module('angularFileUpload', []);
+var ngFileUpload = angular.module('ngFileUpload', []);
 
-angularFileUpload.version = '<%= pkg.version %>';
-angularFileUpload.service('$upload', ['$http', '$q', '$timeout', function ($http, $q, $timeout) {
+ngFileUpload.version = '4.0.2';
+ngFileUpload.service('Upload', ['$http', '$q', '$timeout', function ($http, $q, $timeout) {
     function sendHttp(config) {
         config.method = config.method || 'POST';
         config.headers = config.headers || {};
@@ -119,7 +119,7 @@ angularFileUpload.service('$upload', ['$http', '$q', '$timeout', function ($http
         config.headers = config.headers || {};
         config.headers['Content-Type'] = undefined;
         config.transformRequest = config.transformRequest ?
-            (Object.prototype.toString.call(config.transformRequest) === '[object Array]' ?
+            (angular.isArray(config.transformRequest) ?
                 config.transformRequest : [config.transformRequest]) : [];
         config.transformRequest.push(function (data) {
             var formData = new FormData();
@@ -142,10 +142,13 @@ angularFileUpload.service('$upload', ['$http', '$q', '$timeout', function ($http
                     if (allFields.hasOwnProperty(key)) {
                         var val = allFields[key];
                         if (val !== undefined) {
-                            if (Object.prototype.toString.call(val) === '[object String]') {
+                            if (angular.isDate(val)) {
+                                val = val.toISOString();
+                            }
+                            if (angular.isString(val)) {
                                 formData.append(key, val);
                             } else {
-                                if (config.sendObjectsAsJsonBlob && typeof val === 'object') {
+                                if (config.sendObjectsAsJsonBlob && angular.isObject(val)) {
                                     formData.append(key, new Blob([val], {type: 'application/json'}));
                                 } else {
                                     formData.append(key, JSON.stringify(val));
@@ -160,9 +163,9 @@ angularFileUpload.service('$upload', ['$http', '$q', '$timeout', function ($http
             if (config.file != null) {
                 var fileFormName = config.fileFormDataName || 'file';
 
-                if (Object.prototype.toString.call(config.file) === '[object Array]') {
-                    var isFileFormNameString = Object.prototype.toString.call(fileFormName) === '[object String]';
-                    for (i = 0; i < config.file.length; i++) {
+                if (angular.isArray(config.file)) {
+                    var isFileFormNameString = angular.isString(fileFormName);
+                    for (var i = 0; i < config.file.length; i++) {
                         formData.append(isFileFormNameString ? fileFormName : fileFormName[i], config.file[i],
                             (config.fileName && config.fileName[i]) || config.file[i].name);
                     }
@@ -181,7 +184,7 @@ angularFileUpload.service('$upload', ['$http', '$q', '$timeout', function ($http
     };
 }]);
 
-angularFileUpload.directive('ngFileSelect', ['$parse', '$timeout', '$compile',
+ngFileUpload.directive('ngfSelect', ['$parse', '$timeout', '$compile',
     function ($parse, $timeout, $compile) {
         return {
             restrict: 'AEC',
@@ -196,7 +199,7 @@ function linkFileSelect(scope, elem, attr, ngModel, $parse, $timeout, $compile) 
     function isInputTypeFile() {
         return elem[0].tagName.toLowerCase() === 'input' && elem.attr('type') && elem.attr('type').toLowerCase() === 'file';
     }
-
+    var changeFnAttr = attr.ngfChange || (attr.ngfSelect && attr.ngfSelect.indexOf('(') > 0);
     var isUpdating = false;
     function changeFn(evt) {
         if (!isUpdating) {
@@ -205,21 +208,19 @@ function linkFileSelect(scope, elem, attr, ngModel, $parse, $timeout, $compile) 
                 var fileList = evt.__files_ || (evt.target && evt.target.files);
                 var files = [], rejFiles = [];
 
-                var accept = $parse(attr.ngAccept);
-                for (i = 0; i < fileList.length; i++) {
+                for (var i = 0; i < fileList.length; i++) {
                     var file = fileList.item(i);
-                    if (isAccepted(scope, accept, file, evt)) {
+                    if (validate(scope, $parse, attr, file, evt)) {
                         files.push(file);
                     } else {
                         rejFiles.push(file);
                     }
                 }
-                updateModel($parse, $timeout, scope, ngModel, attr,
-                    attr.ngFileChange || attr.ngFileSelect, files, rejFiles, evt);
+                updateModel($parse, $timeout, scope, ngModel, attr, changeFnAttr, files, rejFiles, evt);
                 if (files.length == 0) evt.target.value = files;
-                if (evt.target && evt.target.getAttribute('__ngf_gen__')) {
-                    angular.element(evt.target).remove();
-                }
+//                if (evt.target && evt.target.getAttribute('__ngf_gen__')) {
+//                    angular.element(evt.target).remove();
+//                }
             } finally {
                 isUpdating = false;
             }
@@ -227,12 +228,17 @@ function linkFileSelect(scope, elem, attr, ngModel, $parse, $timeout, $compile) 
     }
 
     function bindAttrToFileInput(fileElem) {
-        if (attr.ngMultiple) fileElem.attr('multiple', $parse(attr.ngMultiple)(scope));
+        if (attr.ngfMultiple) fileElem.attr('multiple', $parse(attr.ngfMultiple)(scope));
+        if (!$parse(attr.ngfMultiple)(scope)) fileElem.attr('multiple', undefined);
         if (attr['accept']) fileElem.attr('accept', attr['accept']);
-        if (attr.ngCapture) fileElem.attr('capture', $parse(attr.ngCapture)(scope));
-        if (attr.ngDisabled) fileElem.attr('disabled', $parse(attr.ngDisabled)(scope));
-
-        fileElem.bind('change', changeFn);
+        if (attr.ngfCapture) fileElem.attr('capture', $parse(attr.ngfCapture)(scope));
+        if (attr.ngfDisabled) fileElem.attr('disabled', $parse(attr.ngfDisabled)(scope));
+        for (var i = 0; i < elem[0].attributes.length; i++) {
+            var attribute = elem[0].attributes[i];
+            if (attribute.name !== 'type' && attribute.name !== 'class' && attribute.name !== 'id' && attribute.name !== 'style') {
+            	fileElem.attr(attribute.name, attribute.value);
+            }
+        }
     }
 
     function createFileInput(evt) {
@@ -240,58 +246,59 @@ function linkFileSelect(scope, elem, attr, ngModel, $parse, $timeout, $compile) 
             return;
         }
         var fileElem = angular.element('<input type="file">');
-
-        for (var i = 0; i < elem[0].attributes.length; i++) {
-            var attribute = elem[0].attributes[i];
-            if (attribute.name !== 'type') {
-            	fileElem.attr(attribute.name, attribute.value);
-            }
-        }
+        bindAttrToFileInput(fileElem);
 
         if (isInputTypeFile()) {
             elem.replaceWith(fileElem);
             elem = fileElem;
         } else {
-            fileElem.css('width', '0px').css('height', '0px').css('position', 'absolute')
-                .css('padding', 0).css('margin', 0).css('overflow', 'hidden')
-                .attr('tabindex', '-1').css('opacity', 0).attr('__ngf_gen__', true);
-            if (elem.__ngf_ref_elem__) elem.__ngf_ref_elem__.remove();
+            fileElem.css('display', 'none').attr('tabindex', '-1').attr('__ngf_gen__', true);
+            if (elem.__ngf_ref_elem__) {elem.__ngf_ref_elem__.remove();}
             elem.__ngf_ref_elem__ = fileElem;
-            elem.parent()[0].insertBefore(fileElem[0], elem[0]);
-            elem.css('overflow', 'hidden');
+            document.body.appendChild(fileElem[0]);
         }
-
-        bindAttrToFileInput(fileElem);
 
         return fileElem;
     }
 
     function resetModel(evt) {
-        updateModel($parse, $timeout, scope, ngModel, attr,
-            attr.ngFileChange || attr.ngFileSelect, [], [], evt, true);
+        updateModel($parse, $timeout, scope, ngModel, attr, changeFnAttr, [], [], evt, true);
     }
 
     function clickHandler(evt) {
+    	evt.preventDefault();
         var fileElem = createFileInput(evt);
         if (fileElem) {
-            resetModel(evt);
+        	fileElem.bind('change', changeFn);
+        	resetModel(evt);
 
-            fileElem[0].click();
-        }
-        if (isInputTypeFile()) {
-            elem.bind('click', clickHandler);
-            evt.preventDefault()
+        	function clickAndAssign() {
+            	fileElem[0].click();
+    	        if (isInputTypeFile()) {
+    	            elem.bind('click touchend', clickHandler);
+    	            evt.preventDefault()
+    	        }
+        	}
+        	
+        	// fix for android native browser
+        	if (navigator.userAgent.toLowerCase().match(/android/)) {
+                setTimeout(function() {
+                	clickAndAssign();
+                }, 0);        		
+        	} else {
+        		clickAndAssign();
+        	}
         }
     }
 
     if (window.FileAPI && window.FileAPI.ngfFixIE) {
-        window.FileAPI.ngfFixIE(elem, createFileInput, changeFn, resetModel);
+        window.FileAPI.ngfFixIE(elem, createFileInput, bindAttrToFileInput, changeFn, resetModel);
     } else {
-        elem.bind('click', clickHandler);
+        elem.bind('click touchend', clickHandler);
     }
 }
 
-angularFileUpload.directive('ngFileDrop', ['$parse', '$timeout', '$location', function ($parse, $timeout, $location) {
+ngFileUpload.directive('ngfDrop', ['$parse', '$timeout', '$location', function ($parse, $timeout, $location) {
     return {
         restrict: 'AEC',
         require: '?ngModel',
@@ -301,19 +308,21 @@ angularFileUpload.directive('ngFileDrop', ['$parse', '$timeout', '$location', fu
     }
 }]);
 
-angularFileUpload.directive('ngNoFileDrop', function () {
+ngFileUpload.directive('ngfNoFileDrop', function () {
     return function (scope, elem) {
         if (dropAvailable()) elem.css('display', 'none')
     }
 });
 
-//for backward compatibility
-angularFileUpload.directive('ngFileDropAvailable', ['$parse', '$timeout', function ($parse, $timeout) {
+ngFileUpload.directive('ngfDropAvailable', ['$parse', '$timeout', function ($parse, $timeout) {
     return function (scope, elem, attr) {
         if (dropAvailable()) {
-            var fn = $parse(attr['ngFileDropAvailable']);
+            var fn = $parse(attr.ngfDropAvailable);
             $timeout(function () {
                 fn(scope);
+                if (fn.assign) {
+                    fn.assign(scope, true);                	
+                }
             });
         }
     }
@@ -321,23 +330,22 @@ angularFileUpload.directive('ngFileDropAvailable', ['$parse', '$timeout', functi
 
 function linkDrop(scope, elem, attr, ngModel, $parse, $timeout, $location) {
     var available = dropAvailable();
-    if (attr['dropAvailable']) {
+    if (attr.dropAvailable) {
         $timeout(function () {
-            scope.dropAvailable ? scope.dropAvailable.value = available :
-                scope.dropAvailable = available;
+        	scope[attr.dropAvailable] ? scope[attr.dropAvailable].value = available : scope[attr.dropAvailable] = available;
         });
     }
     if (!available) {
-        if ($parse(attr.hideOnDropNotAvailable)(scope) == true) {
+        if ($parse(attr.ngfHideOnDropNotAvailable)(scope) == true) {
             elem.css('display', 'none');
         }
         return;
     }
     var leaveTimeout = null;
-    var stopPropagation = $parse(attr.stopPropagation);
+    var stopPropagation = $parse(attr.ngfStopPropagation);
     var dragOverDelay = 1;
-    var accept = $parse(attr.ngAccept);
-    var disabled = $parse(attr.ngDisabled);
+    var accept = $parse(attr.ngfAccept);
+    var disabled = $parse(attr.ngfDisabled);
     var actualDragOverClass;
 
     elem[0].addEventListener('dragover', function (evt) {
@@ -375,33 +383,33 @@ function linkDrop(scope, elem, attr, ngModel, $parse, $timeout, $location) {
         actualDragOverClass = null;
         extractFiles(evt, function (files, rejFiles) {
             updateModel($parse, $timeout, scope, ngModel, attr,
-                attr.ngFileChange || attr.ngFileDrop, files, rejFiles, evt)
-        }, $parse(attr.allowDir)(scope) != false, attr.multiple || $parse(attr.ngMultiple)(scope));
+                attr.ngfChange || (attr.ngfDrop && attr.ngfDrop.indexOf('(') > 0), files, rejFiles, evt)
+        }, $parse(attr.ngfAllowDir)(scope) != false, attr.multiple || $parse(attr.ngfMultiple)(scope));
     }, false);
 
     function calculateDragOverClass(scope, attr, evt) {
         var accepted = true;
         var items = evt.dataTransfer.items;
         if (items != null) {
-            for (i = 0; i < items.length && accepted; i++) {
+            for (var i = 0; i < items.length && accepted; i++) {
                 accepted = accepted
                     && (items[i].kind == 'file' || items[i].kind == '')
-                    && isAccepted(scope, accept, items[i], evt);
+                    && validate(scope, $parse, attr, items[i], evt);
             }
         }
-        var clazz = $parse(attr.dragOverClass)(scope, {$event: evt});
+        var clazz = $parse(attr.ngfDragOverClass)(scope, {$event: evt});
         if (clazz) {
             if (clazz.delay) dragOverDelay = clazz.delay;
             if (clazz.accept) clazz = accepted ? clazz.accept : clazz.reject;
         }
-        return clazz || attr['dragOverClass'] || 'dragover';
+        return clazz || attr.ngfDragOverClass || 'dragover';
     }
 
     function extractFiles(evt, callback, allowDir, multiple) {
         var files = [], rejFiles = [], items = evt.dataTransfer.items, processing = 0;
 
         function addFile(file) {
-            if (isAccepted(scope, accept, file, evt)) {
+            if (validate(scope, $parse, attr, file, evt)) {
                 files.push(file);
             } else {
                 rejFiles.push(file);
@@ -409,7 +417,7 @@ function linkDrop(scope, elem, attr, ngModel, $parse, $timeout, $location) {
         }
 
         if (items && items.length > 0 && $location.protocol() != 'file') {
-            for (i = 0; i < items.length; i++) {
+            for (var i = 0; i < items.length; i++) {
                 if (items[i].webkitGetAsEntry && items[i].webkitGetAsEntry() && items[i].webkitGetAsEntry().isDirectory) {
                     var entry = items[i].webkitGetAsEntry();
                     if (entry.isDirectory && !allowDir) {
@@ -427,7 +435,7 @@ function linkDrop(scope, elem, attr, ngModel, $parse, $timeout, $location) {
         } else {
             var fileList = evt.dataTransfer.files;
             if (fileList != null) {
-                for (i = 0; i < fileList.length; i++) {
+                for (var i = 0; i < fileList.length; i++) {
                     addFile(fileList.item(i));
                     if (!multiple && files.length > 0) break;
                 }
@@ -463,7 +471,7 @@ function linkDrop(scope, elem, attr, ngModel, $parse, $timeout, $location) {
                         dirReader.readEntries(function (results) {
                             try {
                                 if (!results.length) {
-                                    for (i = 0; i < entries.length; i++) {
+                                    for (var i = 0; i < entries.length; i++) {
                                         traverseFileTree(files, entries[i], (path ? path : '') + entry.name + '/');
                                     }
                                     processing--;
@@ -500,6 +508,31 @@ function linkDrop(scope, elem, attr, ngModel, $parse, $timeout, $location) {
     }
 }
 
+ngFileUpload.directive('ngfThumbnail', ['$parse', '$timeout', function ($parse, $timeout) {
+    return {
+        restrict: 'AE',
+        link: function (scope, elem, attr, file) {
+        	if (window.FileReader) {
+	        	scope.$watch(attr.ngfThumbnail, function(file) {
+	        		if (file && file.type.indexOf('image') > -1) {
+        				$timeout(function() {
+        					var fileReader = new FileReader();
+        					fileReader.readAsDataURL(file);
+        					fileReader.onload = function(e) {
+        						$timeout(function() {
+        							elem.attr('src', e.target.result);
+        						});
+        					}
+        				});
+	        		} else {
+	        			elem.attr('src', '');
+	        		}
+	        	});
+        	}
+        }
+    }
+}]);
+
 function dropAvailable() {
     var div = document.createElement('div');
     return ('draggable' in div) && ('ondrop' in div);
@@ -534,17 +567,17 @@ function updateModel($parse, $timeout, scope, ngModel, attr, fileChange, files, 
     }
 }
 
-function isAccepted(scope, accept, file, evt) {
-    var val = accept(scope, {$file: file, $event: evt});
-    if (val == null) {
-        return true;
+function validate(scope, $parse, attr, file, evt) {
+    var accept = $parse(attr.ngfAccept);
+    var fileSizeMax = $parse(attr.ngfMaxSize)(scope) || 9007199254740991;
+    var fileSizeMin = $parse(attr.ngfMinSize)(scope) || -1;
+    var val = accept(scope, {$file: file, $event: evt}), match = false;
+    if (val != null && angular.isString(val)) {
+        var regexp = new RegExp(globStringToRegex(val), 'gi');
+        match = (file.type != null && file.type.match(regexp)) ||
+        		(file.name != null && file.name.match(regexp));
     }
-    if (angular.isString(val)) {
-        var regexp = new RegExp(globStringToRegex(val), 'gi')
-        val = (file.type != null && file.type.match(regexp)) ||
-        (file.name != null && file.name.match(regexp));
-    }
-    return val;
+    return (val == null || match) && (file.size == null || (file.size < fileSizeMax && file.size > fileSizeMin));
 }
 
 function globStringToRegex(str) {
@@ -553,7 +586,7 @@ function globStringToRegex(str) {
     }
     var split = str.split(','), result = '';
     if (split.length > 1) {
-        for (i = 0; i < split.length; i++) {
+        for (var i = 0; i < split.length; i++) {
             result += '(' + globStringToRegex(split[i]) + ')';
             if (i < split.length - 1) {
                 result += '|'
@@ -567,14 +600,6 @@ function globStringToRegex(str) {
         result = result.replace(/\\\*/g, '.*').replace(/\\\?/g, '.');
     }
     return result;
-}
-
-var ngFileUpload = angular.module('ngFileUpload', []);
-
-for (key in angularFileUpload) {
-    if (angularFileUpload.hasOwnProperty(key)) {
-        ngFileUpload[key] = angularFileUpload[key];
-    }
 }
 
 })();
