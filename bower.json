@@ -1,0 +1,17 @@
+{
+  "name": "ng-file-upload",
+  "version": "4.1.2",
+  "homepage": "https://github.com/itonics/ng-file-upload",
+  "authors": [
+    "Anil Maharjan <anil.maharjan@itonics.de>"
+  ],
+  "main": "dist/ng-file-upload.js",
+  "license": "MIT",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ]
+}
