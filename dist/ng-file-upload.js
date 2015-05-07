@@ -269,7 +269,7 @@ function linkFileSelect(scope, elem, attr, ngModel, $parse, $timeout, $compile) 
         var fileElem = createFileInput(evt);
         if (fileElem) {
         	fileElem.bind('change', changeFn);
-        	resetModel(evt);
+        	//resetModel(evt);
 
         	function clickAndAssign() {
             	fileElem[0].click();
