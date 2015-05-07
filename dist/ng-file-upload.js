@@ -538,32 +538,35 @@ function dropAvailable() {
 }
 
 function updateModel($parse, $timeout, scope, ngModel, attr, fileChange, files, rejFiles, evt, noDelay) {
-    function update() {
-        if (ngModel) {
-            $parse(attr.ngModel).assign(scope, files);
-            $timeout(function () {
-                ngModel && ngModel.$setViewValue(files != null && files.length == 0 ? null : files);
-            });
-        }
-        if (attr.ngModelRejected) {
-            $parse(attr.ngModelRejected).assign(scope, rejFiles);
-        }
-        if (fileChange) {
-            $parse(fileChange)(scope, {
-                $files: files,
-                $rejectedFiles: rejFiles,
-                $event: evt
-            });
+  var concatedFiles = [];
+  function update() {
+    if (ngModel) {
+      var model = $parse(attr.ngModel);
+      concatedFiles = model(scope) && (attr.multiple || $parse(attr.ngfMultiple)(scope))  && (scope.$eval(attr.lazyDrop) || $parse(attr.ngfLazyDrop)(scope)) ? files.concat(model(scope)) : files;
+      model.assign(scope, concatedFiles);
+      $timeout(function () {
+        ngModel && ngModel.$setViewValue(concatedFiles != null && concatedFiles.length == 0 ? null : concatedFiles);
+      });
+    }
+    if (attr.ngModelRejected) {
+      $parse(attr.ngModelRejected).assign(scope, rejFiles);
+    }
+    if (fileChange) {
+      $parse(fileChange)(scope, {
+        $files: files,
+        $rejectedFiles: rejFiles,
+        $event: evt
+      });
 
-        }
     }
-    if (noDelay) {
-        update();
-    } else {
-        $timeout(function () {
-            update();
-        });
-    }
+  }
+  if (noDelay) {
+    update();
+  } else {
+    $timeout(function () {
+      update();
+    });
+  }
 }
 
 function validate(scope, $parse, attr, file, evt) {
