@@ -585,7 +585,17 @@ function validate(scope, $parse, attr, file, evt) {
         accept = (file.type != null && regexp.test(file.type.toLowerCase())) ||
         		(file.name != null && regexp.test(file.name.toLowerCase()));
     }
-    return (accept == null || accept) && (file.size == null || (file.size < fileSizeMax && file.size > fileSizeMin));
+    if (accept == null || accept) {
+      if (file.size == null || (file.size < fileSizeMax && file.size > fileSizeMin)) {
+        return true;
+      } else {
+        file.result = {error: "validation.max.file"};
+        return false;
+      }
+    } else {
+      file.result = {error: "validation.mimetypes"};
+      return false;
+    }
 }
 
 function globStringToRegex(str) {
