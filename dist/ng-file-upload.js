@@ -592,7 +592,7 @@ function validate(scope, $parse, attr, file, evt) {
       if (file.size == null || (file.size < fileSizeMax && file.size > fileSizeMin)) {
         return true;
       } else {
-        file.result = {error: "validation.max.file"};
+        file.result = {error: "validation.max_file_size"};
         return false;
       }
     } else {
