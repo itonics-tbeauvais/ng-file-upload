@@ -597,7 +597,7 @@ function validate(scope, $parse, attr, file, evt) {
                 return true;
             }
         } else {
-            file.result = {error: "validation.max.file"};
+            file.result = {error: "validation.max_file_size"};
             return false;
         }
     } else {
