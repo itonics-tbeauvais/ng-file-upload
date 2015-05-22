@@ -589,12 +589,17 @@ function validate(scope, $parse, attr, file, evt) {
         		(file.name != null && regexp.test(file.name.toLowerCase()));
     }
     if (accept == null || accept) {
-      if (file.size == null || (file.size < fileSizeMax && file.size > fileSizeMin)) {
-        return true;
-      } else {
-        file.result = {error: "validation.max.file"};
-        return false;
-      }
+        if (file.size == null || (file.size < fileSizeMax && file.size > fileSizeMin)) {
+            if (file.size == 0) {
+                file.result = {error: "validation.file_empty"};
+                return false;
+            } else {
+                return true;
+            }
+        } else {
+            file.result = {error: "validation.max.file"};
+            return false;
+        }
     } else {
       file.result = {error: "validation.mimetypes"};
       return false;
