@@ -209,7 +209,7 @@ function linkFileSelect(scope, elem, attr, ngModel, $parse, $timeout, $compile) 
             try {
                 var fileList = evt.__files_ || (evt.target && evt.target.files);
                 var files = [], rejFiles = [];
-
+                rejFiles = $parse(attr.ngModelRejected)(scope);
                 for (var i = 0; i < fileList.length; i++) {
                     var file = fileList.item(i);
                     if (validate(scope, $parse, attr, file, evt)) {
@@ -413,7 +413,7 @@ function linkDrop(scope, elem, attr, ngModel, $parse, $timeout, $location) {
 
     function extractFiles(evt, callback, allowDir, multiple) {
         var files = [], rejFiles = [], items = evt.dataTransfer.items, processing = 0;
-
+        rejFiles = $parse(attr.ngModelRejected)(scope);
         function addFile(file) {
             if (validate(scope, $parse, attr, file, evt)) {
                 files.push(file);
