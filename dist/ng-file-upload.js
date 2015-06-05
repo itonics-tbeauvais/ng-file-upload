@@ -645,6 +645,7 @@ function globStringToRegex(str) {
     }
 
     function getMimeTypeFromExt(ext) {
+        ext = ext.toLowerCase();
         var mimes = {
             "7z": "application/x-7z-compressed",
             "aac": "audio/x-aac",
