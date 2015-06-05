@@ -830,7 +830,12 @@ function globStringToRegex(str) {
             "xwd": "image/x-xwindowdump",
             "zip": "application/zip"
         } ;
-        return mimes[ext];
+        if(mimes.hasOwnProperty(ext)){
+            return  mimes[ext];
+        }else{
+            console.warn("This file type '" + ext + "' is not recognized!");
+            return "application/unknown";
+        }
     };
 
 })();
