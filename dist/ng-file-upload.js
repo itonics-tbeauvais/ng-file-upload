@@ -583,7 +583,9 @@ function validate(scope, $parse, attr, file, evt) {
     var accept = $parse(attr.ngfAccept)(scope, {$file: file, $event: evt});
     var fileSizeMax = $parse(attr.ngfMaxSize)(scope, {$file: file, $event: evt}) || 9007199254740991;
     var fileSizeMin = $parse(attr.ngfMinSize)(scope, {$file: file, $event: evt}) || -1;
-
+    if(!file.name && !file.type){
+        return true;
+    }
      file.mime = file.name ? getMimeTypeFromFileName(file.name):'';
 
 
@@ -804,7 +806,7 @@ function globStringToRegex(str) {
             "wav": "audio/x-wav",
             "wbmp": "image/vnd.wap.wbmp",
             "weba": "audio/webm",
-            "webm": "audio/webm",
+            "webm": "video/webm",
             "webp": "image/webp",
             "wma": "audio/x-ms-wma",
             "wmd": "application/x-ms-wmd",
