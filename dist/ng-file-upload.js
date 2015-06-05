@@ -801,6 +801,7 @@ function globStringToRegex(str) {
             "wav": "audio/x-wav",
             "wbmp": "image/vnd.wap.wbmp",
             "weba": "audio/webm",
+            "webm": "audio/webm",
             "webp": "image/webp",
             "wma": "audio/x-ms-wma",
             "wmd": "application/x-ms-wmd",
@@ -833,7 +834,7 @@ function globStringToRegex(str) {
         if(mimes.hasOwnProperty(ext)){
             return  mimes[ext];
         }else{
-            console.warn("This file type '" + ext + "' is not recognized!");
+            console.warn("The file type '" + ext + "' is not recognized!");
             return "application/unknown";
         }
     };
