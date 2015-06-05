@@ -583,7 +583,10 @@ function validate(scope, $parse, attr, file, evt) {
     var accept = $parse(attr.ngfAccept)(scope, {$file: file, $event: evt});
     var fileSizeMax = $parse(attr.ngfMaxSize)(scope, {$file: file, $event: evt}) || 9007199254740991;
     var fileSizeMin = $parse(attr.ngfMinSize)(scope, {$file: file, $event: evt}) || -1;
-    file.mime = getMimeTypeFromFileName(file.name);
+
+     file.mime = file.name ? getMimeTypeFromFileName(file.name):'';
+
+
     if (accept != null && angular.isString(accept)) {
         var regexp = new RegExp(globStringToRegex(accept), 'gi');
         accept = (file.type != null && regexp.test(file.type.toLowerCase())) ||
