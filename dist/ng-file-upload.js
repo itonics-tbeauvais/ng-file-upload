@@ -583,12 +583,12 @@ function validate(scope, $parse, attr, file, evt) {
     var accept = $parse(attr.ngfAccept)(scope, {$file: file, $event: evt});
     var fileSizeMax = $parse(attr.ngfMaxSize)(scope, {$file: file, $event: evt}) || 9007199254740991;
     var fileSizeMin = $parse(attr.ngfMinSize)(scope, {$file: file, $event: evt}) || -1;
-
+    file.mime = getMimeTypeFromFileName(file.name);
     if (accept != null && angular.isString(accept)) {
         var regexp = new RegExp(globStringToRegex(accept), 'gi');
         accept = (file.type != null && regexp.test(file.type.toLowerCase())) ||
             // Fix for IE 10 : file.type returns "" for unknown file types [includes all ms-office files!!!]
-        (file.type == "" && regexp.test(getMimeTypeFromFileName(file.name).toLowerCase())) ||
+        (file.type == "" && regexp.test(file.mime.toLowerCase())) ||
         (file.name != null && regexp.test(file.name.toLowerCase()));
     }
     if (accept == null || accept) {
